@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 
 
-class _Node:
+class Tree:
     """The fundamental data structure representing a binary decision tree.
 
     Parameters
@@ -12,13 +12,13 @@ class _Node:
 
     Attributes
     ----------
-    left : _Node or None
+    left : Tree or None
         The left node of the tree or None if the current node is a leaf.
-    right : _Node or None
+    right : Tree or None
         The right node of the tree or None if the current node is a leaf.
     feature_index: int
         The column index of the feature to split on in the current node.
-    split_value : float or None
+    threshold : float or None
         The feature value to split by or None if the node is a leaf.
     prediction : float or None
         The prediction value if the node is a leaf or None.
@@ -30,27 +30,24 @@ class _Node:
         self.left = None
         self.right = None
         self.feature_index = None
-        self.split_value = None
+        self.threshold = None
         self.prediction = None
 
-    @staticmethod
-    def _find_best_split(x, y):
-        (num_samples,) = x.shape
+    def _compute_score(self, y_left, y_right):
+        return (np.linalg.norm(y_left - y_left.mean()) ** 2 +
+                np.linalg.norm(y_right - y_right.mean()) ** 2)
 
+    def _find_best_split(self, x, y):
         best_score = np.inf
-        best_split_value = None
+        best_threshold = None
         best_partition = None
-        for i in np.arange(num_samples):
-            # Use average of two consecutive feature values as split value.
-            # split_value = (x[i] + x[i+1]) / 2
-            split_value = x[i]
-
+        for threshold in x:
             # Obtain binary masks for all samples whose feature values are
             # below (left) or above (right) the split value.
-            mask_left = x < split_value
-            mask_right = x >= split_value
+            mask_left = x < threshold
+            mask_right = x >= threshold
 
-            # If we can't split the samples based on 'split_value', move on.
+            # If we can't split the samples based on 'threshold', move on.
             if not mask_left.any() or not mask_right.any():
                 continue
 
@@ -58,17 +55,16 @@ class _Node:
             y_right = y[mask_right]
 
             # Score the candidate split.
-            score = (((y_left - y_left.mean()) ** 2).sum() +
-                     ((y_right - y_right.mean()) ** 2).sum())
+            score = self._compute_score(y_left, y_right)
 
             if score < best_score:
                 best_score = score
-                best_split_value = split_value
+                best_threshold = threshold
                 best_partition = (mask_left, mask_right)
 
         return {
             "score": best_score,
-            "split_value": best_split_value,
+            "threshold": best_threshold,
             "partition": best_partition
         }
 
@@ -91,35 +87,33 @@ class _Node:
         feature_index = min(feature_scores,
                             key=lambda key: feature_scores[key]["score"])
         split = feature_scores[feature_index]
-        split_value = split["split_value"]
-        if split_value is None:
+        threshold = split["threshold"]
+        if threshold is None:
             self.prediction = y.mean()
             return
 
         self.feature_index = feature_index
-        self.split_value = split_value
+        self.threshold = threshold
         mask_left, mask_right = split["partition"]
 
-        self.left = _Node(self._min_samples_split)
+        self.left = Tree(self._min_samples_split)
         self.left.construct_tree(X[mask_left, :], y[mask_left])
 
-        self.right = _Node(self._min_samples_split)
+        self.right = Tree(self._min_samples_split)
         self.right.construct_tree(X[mask_right, :], y[mask_right])
 
-    def _apply_tree_to_sample(self, x):
-        node = self
-        while True:
-            if node.split_value is None:
-                return node.prediction
-            if x[node.feature_index] < node.split_value:
-                node = node.left
-            else:
-                node = node.right
-        raise RuntimeError("No leaf node reached")
+    def apply_tree_to_sample(self, x):
+        if self.threshold is None:
+            return self.prediction
+        if x[self.feature_index] < self.threshold:
+            node = self.left
+        else:
+            node = self.right
+        return node.apply_tree_to_sample(x)
 
     def apply(self, X):
         X = np.array(X)
-        return np.array([self._apply_tree_to_sample(row) for row in X])
+        return np.array([self.apply_tree_to_sample(row) for row in X])
 
 
 class DecisionTree(BaseEstimator, RegressorMixin):
@@ -129,7 +123,7 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         self._tree = None
 
     def fit(self, X, y):
-        self._tree = _Node(self.min_samples_split_)
+        self._tree = Tree(self.min_samples_split_)
         self._tree.construct_tree(X, y)
         return self
 
