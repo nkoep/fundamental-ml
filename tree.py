@@ -40,9 +40,10 @@ class _Node:
         best_score = np.inf
         best_split_value = None
         best_partition = None
-        for i in np.arange(num_samples-1):
+        for i in np.arange(num_samples):
             # Use average of two consecutive feature values as split value.
-            split_value = (x[i] + x[i+1]) / 2
+            # split_value = (x[i] + x[i+1]) / 2
+            split_value = x[i]
 
             # Obtain binary masks for all samples whose feature values are
             # below (left) or above (right) the split value.
@@ -84,7 +85,6 @@ class _Node:
         feature_scores = {}
         for feature_index in np.arange(num_features):
             x = X[:, feature_index]
-            x.sort()
             feature_scores[feature_index] = self._find_best_split(x, y)
 
         # Retrieve the split configuration for the best (lowest) score.
