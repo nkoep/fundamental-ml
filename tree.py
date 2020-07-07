@@ -104,12 +104,11 @@ class Tree:
 
         Parameters
         ----------
-        X : (num_samples, num_features) array_like
+        X : (num_samples, num_features) ndarray
             The matrix of observations.
-        y : (num_samples,) array_like
+        y : (num_samples,) ndarray
             The vector of targets corresponding to the observations `X`.
         """
-        X, y = map(np.array, (X, y))
         num_samples, num_features = X.shape
 
         # Too few samples to split, so turn the node into a leaf.
@@ -167,7 +166,7 @@ class Tree:
 
         Parameters
         ----------
-        X : (num_samples, num_features) array_like
+        X : (num_samples, num_features) ndarray
             The matrix of observations.
 
         Returns
@@ -175,7 +174,6 @@ class Tree:
         predictions : (num_samples,) ndarray
             A vector of predictions for each individual observation.
         """
-        X = np.array(X)
         return np.vectorize(self.apply_tree_to_sample, signature="(m)->()")(X)
 
 
@@ -208,7 +206,7 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         self : DecisionTree
         """
         self._tree = Tree(self.min_samples_split_)
-        self._tree.construct_tree(X, y)
+        self._tree.construct_tree(*map(np.array, (X, y)))
         return self
 
     def predict(self, X):
@@ -226,4 +224,4 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         """
         if self._tree is None:
             raise RuntimeError("Tree needs to be fitted first")
-        return self._tree.apply(X)
+        return self._tree.apply(np.array(X))
