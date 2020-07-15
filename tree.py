@@ -191,10 +191,14 @@ class DecisionTree(BaseEstimator, RegressorMixin):
     ----------
     min_samples_split : int
         The minimum number of samples required to split an internal node.
+    random_state : int or None
+        The random state of the estimator. This parameter is currently ignored;
+        it is only here for compatibility with scikit-learn.
     """
 
-    def __init__(self, min_samples_split=2):
+    def __init__(self, min_samples_split=2, random_state=None):
         self.min_samples_split_ = min_samples_split
+        self.random_state_ = random_state  # Ignored
 
         self._tree = None
 
