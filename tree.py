@@ -148,7 +148,7 @@ class Tree:
         self.right = Tree(self._min_samples_split)
         self.right.construct_tree(X[mask_right, :], y[mask_right])
 
-    def apply_tree_to_sample(self, x):
+    def apply_to_sample(self, x):
         """Perform regression on a single observation.
 
         Parameters
@@ -166,22 +166,7 @@ class Tree:
             node = self.left
         else:
             node = self.right
-        return node.apply_tree_to_sample(x)
-
-    def apply(self, X):
-        """Perform regression on a matrix of observations.
-
-        Parameters
-        ----------
-        X : (num_samples, num_features) ndarray
-            The matrix of observations.
-
-        Returns
-        -------
-        predictions : (num_samples,) ndarray
-            A vector of predictions for each individual observation.
-        """
-        return np.vectorize(self.apply_tree_to_sample, signature="(m)->()")(X)
+        return node.apply_to_sample(x)
 
 
 class DecisionTree(BaseEstimator, RegressorMixin):
@@ -234,5 +219,6 @@ class DecisionTree(BaseEstimator, RegressorMixin):
             A vector of predictions for each individual observation.
         """
         if self._tree is None:
-            raise RuntimeError("Tree needs to be fitted first")
-        return self._tree.apply(np.array(X))
+            raise RuntimeError("Estimator needs to be fitted first")
+        return np.array(
+            [self._tree.apply_to_sample(row) for row in np.array(X)])
