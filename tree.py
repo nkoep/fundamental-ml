@@ -77,6 +77,12 @@ class Tree:
     ----------
     min_samples_split : int
         The minimum number of samples required to split an internal node.
+    max_features : int or None
+        The size of the randomly selected subset of features to consider when
+        splitting an internal node.
+    rng : numpy.random.Generator or None
+        A pseudo random number generator to allow for reproducible tree
+        construction when `max_features` is not None.
 
     Attributes
     ----------
@@ -92,8 +98,10 @@ class Tree:
         The prediction value if the node is a leaf or None.
     """
 
-    def __init__(self, min_samples_split):
+    def __init__(self, min_samples_split, max_features=None, rng=None):
         self._min_samples_split = min_samples_split
+        self._max_features = max_features
+        self._rng = rng
 
         self.left = None
         self.right = None
@@ -118,9 +126,16 @@ class Tree:
             self.prediction = y.mean()
             return
 
+        if self._max_features is not None:
+            assert self._rng is not None, "No PRNG provided"
+            feature_indices = self._rng.integers(
+                num_features, size=min(self._max_features, num_features))
+        else:
+            feature_indices = np.arange(num_features)
+
         # For each feature, compute the best split.
         feature_scores = {}
-        for feature_index in np.arange(num_features):
+        for feature_index in feature_indices:
             x = X[:, feature_index]
             score, threshold, partition = _find_best_split(x, y)
             feature_scores[feature_index] = {
@@ -142,10 +157,12 @@ class Tree:
         self.threshold = threshold
         mask_left, mask_right = split["partition"]
 
-        self.left = Tree(self._min_samples_split)
+        self.left = Tree(
+            self._min_samples_split, self._max_features, self._rng)
         self.left.construct_tree(X[mask_left, :], y[mask_left])
 
-        self.right = Tree(self._min_samples_split)
+        self.right = Tree(
+            self._min_samples_split, self._max_features, self._rng)
         self.right.construct_tree(X[mask_right, :], y[mask_right])
 
     def apply_to_sample(self, x):
@@ -176,14 +193,19 @@ class DecisionTree(BaseEstimator, RegressorMixin):
     ----------
     min_samples_split : int
         The minimum number of samples required to split an internal node.
+    max_features : int or None
+        The size of the randomly selected subset of features to consider when
+        splitting an internal node.
     random_state : int or None
         The random state of the estimator. This parameter is currently ignored;
         it is only here for compatibility with scikit-learn.
     """
 
-    def __init__(self, min_samples_split=2, random_state=None):
+    def __init__(self, min_samples_split=2, max_features=None,
+                 random_state=None):
         self.min_samples_split_ = min_samples_split
-        self.random_state_ = random_state  # Ignored
+        self.max_features_ = max_features
+        self.random_state_ = random_state
 
         self._tree = None
 

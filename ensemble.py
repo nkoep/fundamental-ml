@@ -12,8 +12,13 @@ class RandomForest(BaseEstimator, RegressorMixin):
 
     Parameters
     ----------
+    n_estimators : int
+        The number of estimators to consider in the ensemble.
     min_samples_split : int
         The minimum number of samples required to split an internal node.
+    max_features : int or None
+        The size of the randomly selected subset of features to consider when
+        splitting an internal node.
     random_state : int or None
         The random state of the estimator. Since each tree is fitted on a
         randomly subsampled collection of training examples, specifying a
@@ -21,9 +26,10 @@ class RandomForest(BaseEstimator, RegressorMixin):
     """
 
     def __init__(self, n_estimators=100, min_samples_split=2,
-                 random_state=None):
+                 max_features=None, random_state=None):
         self.n_estimators_ = n_estimators
         self.min_samples_split_ = min_samples_split
+        self.max_features_ = max_features
         self.random_state_ = random_state
 
         self._trees = []
@@ -48,7 +54,7 @@ class RandomForest(BaseEstimator, RegressorMixin):
         num_samples = X.shape[0]
 
         for _ in range(self.n_estimators_):
-            tree = Tree(self.min_samples_split_)
+            tree = Tree(self.min_samples_split_, self.max_features_, rng)
             indices = rng.integers(num_samples, size=num_samples)
             tree.construct_tree(X[indices, :], y[indices])
             self._trees.append(tree)
