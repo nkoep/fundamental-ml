@@ -59,6 +59,8 @@ class RandomForest(BaseEstimator, RegressorMixin):
             tree.construct_tree(X[indices, :], y[indices])
             self._trees.append(tree)
 
+        return self
+
     def _predict_sample(self, x):
         """Perform prediction on a single sample.
 
