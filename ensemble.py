@@ -54,7 +54,10 @@ class RandomForest(BaseEstimator, RegressorMixin):
         num_samples = X.shape[0]
 
         for _ in range(self.n_estimators_):
-            tree = Tree(self.min_samples_split_, self.max_features_, rng)
+            tree = Tree(
+                min_samples_split=self.min_samples_split_,
+                max_features=self.max_features_,
+                rng=rng)
             indices = rng.integers(num_samples, size=num_samples)
             tree.construct_tree(X[indices, :], y[indices])
             self._trees.append(tree)

@@ -98,10 +98,13 @@ class Tree:
         The prediction value if the node is a leaf or None.
     """
 
-    def __init__(self, min_samples_split, max_features=None, rng=None):
+    def __init__(self, min_samples_split=2, max_features=None, rng=None):
         self._min_samples_split = min_samples_split
         self._max_features = max_features
         self._rng = rng
+
+        if self._max_features is not None:
+            assert self._rng is not None, "No PRNG provided"
 
         self.left = None
         self.right = None
@@ -127,7 +130,6 @@ class Tree:
             return
 
         if self._max_features is not None:
-            assert self._rng is not None, "No PRNG provided"
             feature_indices = self._rng.integers(
                 num_features, size=min(self._max_features, num_features))
         else:
@@ -158,11 +160,15 @@ class Tree:
         mask_left, mask_right = split["partition"]
 
         self.left = Tree(
-            self._min_samples_split, self._max_features, self._rng)
+            min_samples_split=self._min_samples_split,
+            max_features=self._max_features,
+            rng=self._rng)
         self.left.construct_tree(X[mask_left, :], y[mask_left])
 
         self.right = Tree(
-            self._min_samples_split, self._max_features, self._rng)
+            min_samples_split=self._min_samples_split,
+            max_features=self._max_features,
+            rng=self._rng)
         self.right.construct_tree(X[mask_right, :], y[mask_right])
 
     def apply_to_sample(self, x):
@@ -223,7 +229,7 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         -------
         self : DecisionTree
         """
-        self._tree = Tree(self.min_samples_split_)
+        self._tree = Tree(min_samples_split=self.min_samples_split_)
         self._tree.construct_tree(*map(np.array, (X, y)))
         return self
 
