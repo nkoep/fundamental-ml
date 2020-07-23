@@ -75,6 +75,10 @@ class Tree:
 
     Parameters
     ----------
+    max_depth : int or None
+        The maximum allowed tree depth. In general, this requires pruning the
+        tree to select the best subtree configuration. For simplicity, we only
+        allow `max_depth=1`.
     min_samples_split : int
         The minimum number of samples required to split an internal node.
     max_features : int or None
@@ -98,11 +102,15 @@ class Tree:
         The prediction value if the node is a leaf or None.
     """
 
-    def __init__(self, min_samples_split=2, max_features=None, rng=None):
+    def __init__(self, max_depth=None, min_samples_split=2, max_features=None,
+                 rng=None):
+        self._max_depth = max_depth
         self._min_samples_split = min_samples_split
         self._max_features = max_features
         self._rng = rng
 
+        if self._max_depth is not None:
+            assert self._max_depth == 1, "Only 'max_depth=1' allowed"
         if self._max_features is not None:
             assert self._rng is not None, "No PRNG provided"
 
@@ -125,7 +133,7 @@ class Tree:
         num_samples, num_features = X.shape
 
         # Too few samples to split, so turn the node into a leaf.
-        if num_samples < self._min_samples_split:
+        if num_samples < self._min_samples_split or self._max_depth == 1:
             self.prediction = y.mean()
             return
 
@@ -197,6 +205,10 @@ class DecisionTree(BaseEstimator, RegressorMixin):
 
     Parameters
     ----------
+    max_depth : int or None
+        The maximum allowed tree depth. In general, this requires pruning the
+        tree to select the best subtree configuration. For simplicity, we only
+        allow `max_depth=1`.
     min_samples_split : int
         The minimum number of samples required to split an internal node.
     max_features : int or None
@@ -207,8 +219,9 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         it is only here for compatibility with scikit-learn.
     """
 
-    def __init__(self, min_samples_split=2, max_features=None,
+    def __init__(self, max_depth=None, min_samples_split=2, max_features=None,
                  random_state=None):
+        self.max_depth_ = max_depth
         self.min_samples_split_ = min_samples_split
         self.max_features_ = max_features
         self.random_state_ = random_state
