@@ -95,4 +95,16 @@ class AdaBoost(BaseEstimator, RegressorMixin):
 
         predictions = np.array([
             sprout.predict(X) for sprout in self.sprouts_])
-        return np.median(predictions, axis=0)
+
+        sort_indices = predictions.argsort(axis=0)
+        sorted_weights = self.sprout_weights_[:, np.newaxis][
+            sort_indices].squeeze()
+        cumulative_weights = np.cumsum(sorted_weights, axis=0)
+        weight_sums = cumulative_weights[-1, :]
+        predictor_indices = (cumulative_weights >=
+                   0.5 * weight_sums[np.newaxis, :]).argmax(axis=0)
+
+        num_samples = X.shape[0]
+        selectors = np.arange(num_samples)
+        return predictions[sort_indices[predictor_indices, selectors],
+                           selectors]
