@@ -84,7 +84,7 @@ class Tree:
     max_features : int or None
         The size of the randomly selected subset of features to consider when
         splitting an internal node.
-    rng : numpy.random.Generator or None
+    random_state : numpy.random.Generator or None
         A pseudo random number generator to allow for reproducible tree
         construction when `max_features` is not None.
 
@@ -103,16 +103,16 @@ class Tree:
     """
 
     def __init__(self, max_depth=None, min_samples_split=2, max_features=None,
-                 rng=None):
+                 random_state=None):
         self._max_depth = max_depth
         self._min_samples_split = min_samples_split
         self._max_features = max_features
-        self._rng = rng
+        self._random_state = random_state
 
         if self._max_depth is not None:
             assert self._max_depth == 1, "Only 'max_depth=1' allowed"
         if self._max_features is not None:
-            assert self._rng is not None, "No PRNG provided"
+            assert self._random_state is not None, "No random state provided"
 
         self.left = None
         self.right = None
@@ -138,7 +138,7 @@ class Tree:
             return
 
         if self._max_features is not None:
-            feature_indices = self._rng.integers(
+            feature_indices = self._random_state.integers(
                 num_features, size=min(self._max_features, num_features))
         else:
             feature_indices = np.arange(num_features)
@@ -170,13 +170,13 @@ class Tree:
         self.left = Tree(
             min_samples_split=self._min_samples_split,
             max_features=self._max_features,
-            rng=self._rng)
+            random_state=self._random_state)
         self.left.construct_tree(X[mask_left, :], y[mask_left])
 
         self.right = Tree(
             min_samples_split=self._min_samples_split,
             max_features=self._max_features,
-            rng=self._rng)
+            random_state=self._random_state)
         self.right.construct_tree(X[mask_right, :], y[mask_right])
 
     def apply_to_sample(self, x):
@@ -198,6 +198,21 @@ class Tree:
         else:
             node = self.right
         return node.apply_to_sample(x)
+
+    def apply(self, X):
+        """Perform prediction on a matrix of observations.
+
+        Parameters
+        ----------
+        X : (num_samples, num_features) ndarray
+            The matrix of observations.
+
+        Returns
+        -------
+        predictions : (num_samples,) ndarray
+            A vector of predictions for each individual observation.
+        """
+        return np.array([self.apply_to_sample(row) for row in X])
 
 
 class DecisionTree(BaseEstimator, RegressorMixin):
@@ -221,12 +236,12 @@ class DecisionTree(BaseEstimator, RegressorMixin):
 
     def __init__(self, max_depth=None, min_samples_split=2, max_features=None,
                  random_state=None):
-        self.max_depth_ = max_depth
-        self.min_samples_split_ = min_samples_split
-        self.max_features_ = max_features
-        self.random_state_ = random_state
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.max_features = max_features
+        self.random_state = random_state
 
-        self._tree = None
+        self.tree_ = None
 
     def fit(self, X, y):
         """Fit the decision tree to a given set of observations and targets.
@@ -242,8 +257,8 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         -------
         self : DecisionTree
         """
-        self._tree = Tree(min_samples_split=self.min_samples_split_)
-        self._tree.construct_tree(*map(np.array, (X, y)))
+        self.tree_ = Tree(min_samples_split=self.min_samples_split)
+        self.tree_.construct_tree(*map(np.array, (X, y)))
         return self
 
     def predict(self, X):
@@ -259,7 +274,6 @@ class DecisionTree(BaseEstimator, RegressorMixin):
         predictions : (num_samples,) ndarray
             A vector of predictions for each individual observation.
         """
-        if self._tree is None:
+        if self.tree_ is None:
             raise RuntimeError("Estimator needs to be fitted first")
-        return np.array(
-            [self._tree.apply_to_sample(row) for row in np.array(X)])
+        return self.tree_.apply(np.array(X))

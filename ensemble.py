@@ -1,7 +1,8 @@
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 
-from tree import Tree
+from random_state import ensure_random_state
+from tree import DecisionTree
 
 
 class RandomForest(BaseEstimator, RegressorMixin):
@@ -27,12 +28,12 @@ class RandomForest(BaseEstimator, RegressorMixin):
 
     def __init__(self, n_estimators=100, min_samples_split=2,
                  max_features=None, random_state=None):
-        self.n_estimators_ = n_estimators
-        self.min_samples_split_ = min_samples_split
-        self.max_features_ = max_features
-        self.random_state_ = random_state
+        self.n_estimators = n_estimators
+        self.min_samples_split = min_samples_split
+        self.max_features = max_features
+        self.random_state = random_state
 
-        self._trees = []
+        self.trees_ = []
 
     def fit(self, X, y):
         """Fit the random forest to a given set of observations and targets.
@@ -50,35 +51,19 @@ class RandomForest(BaseEstimator, RegressorMixin):
         """
         X, y = map(np.array, (X, y))
 
-        rng = np.random.default_rng(self.random_state_)
+        random_state = ensure_random_state(self.random_state)
         num_samples = X.shape[0]
 
-        for _ in range(self.n_estimators_):
-            tree = Tree(
-                min_samples_split=self.min_samples_split_,
-                max_features=self.max_features_,
-                rng=rng)
-            indices = rng.integers(num_samples, size=num_samples)
-            tree.construct_tree(X[indices, :], y[indices])
-            self._trees.append(tree)
+        for _ in range(self.n_estimators):
+            tree = DecisionTree(
+                min_samples_split=self.min_samples_split,
+                max_features=self.max_features,
+                random_state=random_state)
+            indices = random_state.integers(num_samples, size=num_samples)
+            tree.fit(X[indices, :], y[indices])
+            self.trees_.append(tree)
 
         return self
-
-    def _predict_sample(self, x):
-        """Perform prediction on a single sample.
-
-        Parameters
-        ----------
-        x : (num_samples,) ndarray
-            A vector representing a single observation.
-
-        Returns
-        -------
-        prediction : float
-            The prediction result for the observation `x`.
-        """
-        return np.array(
-            [tree.apply_to_sample(x) for tree in self._trees]).mean()
 
     def predict(self, X):
         """Perform prediction on a matrix of observations.
@@ -93,6 +78,10 @@ class RandomForest(BaseEstimator, RegressorMixin):
         predictions : (num_samples,) ndarray
             A vector of predictions for each individual observation.
         """
-        if not self._trees:
+        if not self.trees_:
             raise RuntimeError("Estimator needs to be fitted first")
-        return np.array([self._predict_sample(row) for row in np.array(X)])
+
+        predictions = 0
+        for tree in self.trees_:
+            predictions += tree.predict(X)
+        return predictions / self.n_estimators
