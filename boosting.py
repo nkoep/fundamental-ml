@@ -64,15 +64,15 @@ class AdaBoost(BaseEstimator, RegressorMixin):
 
             predictions = sprout.predict(X)
             prediction_errors = np.abs(y - predictions)
-            average_loss = np.inner(
-                prediction_errors / prediction_errors.max(), sample_weights)
+            prediction_errors /= prediction_errors.max()
+            average_loss = np.inner(prediction_errors, sample_weights)
 
             beta = average_loss / (1 - average_loss)
             self.sprout_weights_[i] = np.log(1 / beta)
             self.sprouts_.append(sprout)
 
             # Update sample weights.
-            weights = sample_weights * beta ** (1 - average_loss)
+            weights = sample_weights * beta ** (1 - prediction_errors)
             sample_weights = weights / weights.sum()
 
         return self
