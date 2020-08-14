@@ -105,6 +105,13 @@ class AdaBoost(BaseEstimator, RegressorMixin):
 
         return self
 
+    def _weighted_median(self, weights, elements):
+        sort_indices = np.argsort(elements)
+        sorted_weights = weights[sort_indices]
+        cumulative_weights = np.cumsum(sorted_weights)
+        index = (cumulative_weights >= 0.5 * np.sum(weights)).argmax()
+        return elements[sort_indices[index]]
+
     def predict(self, X):
         """Perform prediction on a matrix of observations.
 
@@ -121,6 +128,15 @@ class AdaBoost(BaseEstimator, RegressorMixin):
         if not self.sprouts_:
             raise RuntimeError("Estimator needs to be fitted first")
 
+        predictions = np.array([sprout.predict(X)
+                                for sprout in self.sprouts_]).T
+        return np.array([self._weighted_median(self.sprout_weights_, row)
+                         for row in predictions])
+
+    def _predict(self, X):
+        # This is an alternative but slightly less readable implementation of
+        # weighted median for prediction that computes all predictions in one
+        # go along the lines of sklearn's implementation.
         predictions = np.array([
             sprout.predict(X) for sprout in self.sprouts_])
 
