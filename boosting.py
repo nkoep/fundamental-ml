@@ -88,6 +88,12 @@ class AdaBoost(BaseEstimator, RegressorMixin):
             prediction_errors /= prediction_errors.max()
             average_loss = np.inner(prediction_errors, sample_weights)
 
+            # Early termination if loss is too bad.
+            if average_loss >= 0.5:
+                if len(self.sprouts_) == 0:
+                    self.sprouts_.append(sprout)
+                break
+
             # Update estimator weights.
             beta = average_loss / (1 - average_loss)
             self.sprout_weights_[i] = np.log(1 / beta)
@@ -120,11 +126,11 @@ class AdaBoost(BaseEstimator, RegressorMixin):
 
         sort_indices = predictions.argsort(axis=0)
         sorted_weights = self.sprout_weights_[:, np.newaxis][
-            sort_indices].squeeze()
+            sort_indices].squeeze(axis=-1)
         cumulative_weights = np.cumsum(sorted_weights, axis=0)
         weight_sums = cumulative_weights[-1, :]
         predictor_indices = (cumulative_weights >=
-                   0.5 * weight_sums[np.newaxis, :]).argmax(axis=0)
+               0.5 * weight_sums[np.newaxis, :]).argmax(axis=0)
 
         num_samples = X.shape[0]
         selectors = np.arange(num_samples)
