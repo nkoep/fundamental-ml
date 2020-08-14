@@ -85,8 +85,8 @@ class Tree:
     max_features : int or None
         The size of the randomly selected subset of features to consider when
         splitting an internal node.
-    random_state : numpy.random.Generator or None
-        A pseudo random number generator to allow for reproducible tree
+    random_state : numpy.random.Generator or int or None
+        The random state of the estimator to allow reproducible tree
         construction when `max_features` is not None.
 
     Attributes

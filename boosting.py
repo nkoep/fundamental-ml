@@ -18,6 +18,26 @@ class Sprout(DecisionTree):
 
 
 class AdaBoost(BaseEstimator, RegressorMixin):
+    """An AdaBoost regressor based on shallow decision trees.
+
+    While AdaBoost supports any regression algorithm, this implementation uses
+    shallow decision trees of depth 3, which we refer to as 'sprouts'.
+
+    Parameters
+    ----------
+    n_estimators : int
+        The number of estimators in the ensemble.
+    random_state : numpy.random.Generator or int or None
+        The random state of the estimator to allow reproducible training.
+
+    Attributes
+    ----------
+    sprout_weights_ : (n_estimators,) ndarray
+        The estimator weights.
+    sprouts_ : list of `Sprout` instances
+        The trained estimators of the ensemble.
+    """
+
     def __init__(self, n_estimators=50, random_state=None):
         self.n_estimators = n_estimators
         self.random_state = random_state
@@ -62,11 +82,13 @@ class AdaBoost(BaseEstimator, RegressorMixin):
             sprout = Sprout(random_state=random_state)
             sprout.fit(X_resampled, y_resampled)
 
+            # Compute normalized losses and average loss.
             predictions = sprout.predict(X)
             prediction_errors = np.abs(y - predictions)
             prediction_errors /= prediction_errors.max()
             average_loss = np.inner(prediction_errors, sample_weights)
 
+            # Update estimator weights.
             beta = average_loss / (1 - average_loss)
             self.sprout_weights_[i] = np.log(1 / beta)
             self.sprouts_.append(sprout)

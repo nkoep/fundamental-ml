@@ -20,7 +20,7 @@ class RandomForest(BaseEstimator, RegressorMixin):
     max_features : int or None
         The size of the randomly selected subset of features to consider when
         splitting an internal node.
-    random_state : int or None
+    random_state : numpy.random.Generator or int or None
         The random state of the estimator. Since each tree is fitted on a
         randomly subsampled collection of training examples, specifying a
         'random_state' explicitly allows for deterministic estimator training.
