@@ -1,4 +1,3 @@
-from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import AdaBoostRegressor
 
 from example_runner import run_example
