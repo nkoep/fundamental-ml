@@ -180,13 +180,12 @@ class GradientBoosting(BaseEstimator, RegressorMixin):
         # The initial prediction.
         estimator = DummyRegressor().fit(X, y)
         predictions = estimator.predict(X)
-        residuals = y - predictions
         self.estimators_.append(estimator)
 
         for _ in range(self.n_estimators-1):
+            residuals = y - predictions
             estimator = self._make_estimator().fit(X, residuals)
             predictions += self.learning_rate * estimator.predict(X)
-            residuals = y - predictions
             self.estimators_.append(estimator)
 
         return self
